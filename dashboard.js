@@ -780,6 +780,16 @@ function displayBookmarks(append = false) {
 
 // Event handler for bookmark clicks using event delegation
 function handleBookmarkClick(event) {
+    // Handle trash icon clicks
+    if (event.target.classList.contains('bookmark-card-delete')) {
+        event.stopPropagation(); // Prevent opening modal
+        const url = event.target.getAttribute('data-url');
+        if (url) {
+            handleQuickDelete(url);
+        }
+        return;
+    }
+    
     // Don't handle clicks on URLs - they should navigate normally
     if (event.target.classList.contains('bookmark-url')) {
         event.stopPropagation(); // Prevent opening modal when clicking URL
@@ -806,6 +816,33 @@ function handleBookmarkClick(event) {
         if (bookmark) {
             openBookmarkModal(bookmark);
         }
+    }
+}
+
+/**
+ * Handle quick deletion from hover trash icon
+ */
+async function handleQuickDelete(url) {
+    const bookmark = allBookmarks.find(b => b.url === url);
+    if (!bookmark) return;
+    
+    if (!confirm(`Delete bookmark for "${bookmark.title}"?`)) return;
+    
+    try {
+        const response = await chrome.runtime.sendMessage({
+            action: 'deleteBookmark',
+            url: url
+        });
+        
+        if (response?.success) {
+            await loadBookmarks();
+            showToast('Bookmark deleted!', 'success');
+            
+            // Trigger auto-sync
+            triggerAutoSync();
+        }
+    } catch (error) {
+        showToast('Failed to delete bookmark', 'error');
     }
 }
 
@@ -974,7 +1011,10 @@ function createBookmarkCard(bookmark) {
         `;
     }
     
-    return `<div class="bookmark-card" data-url="${bookmark.url}">${cardHTML}</div>`;
+    return `<div class="bookmark-card" data-url="${bookmark.url}">
+        ${cardHTML}
+        <button class="bookmark-card-delete" data-url="${bookmark.url}" title="Delete bookmark">🗑️</button>
+    </div>`;
 }
 
 /**
