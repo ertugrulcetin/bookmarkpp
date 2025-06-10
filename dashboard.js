@@ -1318,27 +1318,108 @@ async function handleExport() {
     }
 }
 
+/**
+ * Validate if a bookmark record has required fields
+ */
+function isValidBookmark(bookmark) {
+    // Check if bookmark has the essential fields
+    if (!bookmark || typeof bookmark !== 'object') {
+        return false;
+    }
+    
+    // Required fields: url, title, and created_at
+    const hasUrl = bookmark.url && typeof bookmark.url === 'string' && bookmark.url.trim().length > 0;
+    const hasTitle = bookmark.title && typeof bookmark.title === 'string' && bookmark.title.trim().length > 0;
+    const hasCreatedAt = bookmark.created_at && typeof bookmark.created_at === 'string' && bookmark.created_at.trim().length > 0;
+    
+    // Check if URL is valid
+    let isValidUrl = false;
+    if (hasUrl) {
+        try {
+            new URL(bookmark.url);
+            isValidUrl = true;
+        } catch (e) {
+            isValidUrl = false;
+        }
+    }
+    
+    // Check if created_at is a valid date
+    let isValidDate = false;
+    if (hasCreatedAt) {
+        const date = new Date(bookmark.created_at);
+        isValidDate = !isNaN(date.getTime());
+    }
+    
+    return hasUrl && hasTitle && hasCreatedAt && isValidUrl && isValidDate;
+}
+
 async function handleImport(event) {
     const file = event.target.files[0];
     if (!file) return;
     
     try {
         const text = await file.text();
-        const response = await chrome.runtime.sendMessage({
-            action: 'importBookmarks',
-            data: text,
-            merge: true
+        const importData = JSON.parse(text);
+        
+        let bookmarksToImport = [];
+        let skippedCount = 0;
+        
+        // Handle different JSON structures
+        if (Array.isArray(importData)) {
+            // Direct array of bookmarks
+            bookmarksToImport = importData;
+        } else if (importData.bookmarks && Array.isArray(importData.bookmarks)) {
+            // Object with bookmarks array
+            bookmarksToImport = importData.bookmarks;
+        } else if (typeof importData === 'object') {
+            // Domain-based structure - flatten it
+            bookmarksToImport = [];
+            Object.values(importData).forEach(domainBookmarks => {
+                if (Array.isArray(domainBookmarks)) {
+                    bookmarksToImport.push(...domainBookmarks);
+                }
+            });
+        }
+        
+        // Validate and filter bookmarks
+        const validBookmarks = [];
+        bookmarksToImport.forEach(bookmark => {
+            if (isValidBookmark(bookmark)) {
+                validBookmarks.push(bookmark);
+            } else {
+                skippedCount++;
+                console.warn('Skipped invalid bookmark:', bookmark);
+            }
         });
         
-        if (response?.success) {
-            await loadBookmarks();
-            showToast('Imported successfully!', 'success');
-            
-            // Trigger auto-sync
-            triggerAutoSync();
+        if (validBookmarks.length === 0) {
+            showToast('No valid bookmarks found in the imported file', 'error');
+            event.target.value = '';
+            return;
         }
+        
+        // Import valid bookmarks
+        for (const bookmark of validBookmarks) {
+            await chrome.runtime.sendMessage({
+                action: 'saveBookmark',
+                bookmarkData: bookmark
+            });
+        }
+        
+        await loadBookmarks();
+        
+        let message = `Successfully imported ${validBookmarks.length} bookmarks`;
+        if (skippedCount > 0) {
+            message += ` (${skippedCount} invalid records skipped)`;
+        }
+        showToast(message, 'success');
+        
+        // Trigger auto-sync
+        triggerAutoSync();
+        
     } catch (error) {
-        showToast('Import failed', 'error');
+        console.error('Import error:', error);
+        showToast('Import failed: Invalid JSON format', 'error');
     }
     
     event.target.value = '';
@@ -1623,6 +1704,7 @@ async function handleDeleteNoteFromModal(bookmarkUrl, noteId) {
 
 // Pocket Import Functionality
 let importCancelled = false;
+let isImportInProgress = false; // Flag to prevent auto-sync during import
 
 /**
  * Handle Pocket CSV import
@@ -1638,12 +1720,14 @@ async function handlePocketImport(event) {
     }
     
     try {
+        isImportInProgress = true; // Disable auto-sync during import
         const text = await file.text();
         const bookmarks = parsePocketCSV(text);
         
         if (bookmarks.length === 0) {
             showToast('No valid bookmarks found in CSV file', 'error');
             event.target.value = '';
+            isImportInProgress = false;
             return;
         }
         
@@ -1655,6 +1739,7 @@ async function handlePocketImport(event) {
         console.error('Error importing Pocket data:', error);
         showToast('Failed to import Pocket data: ' + error.message, 'error');
         closeImportProgressModal();
+        isImportInProgress = false;
     }
     
     event.target.value = '';
@@ -1905,10 +1990,14 @@ async function processPocketBookmarks(bookmarks) {
         await loadBookmarks();
         showToast(`Import completed! ${stats.success} bookmarks imported`, 'success');
         
-        // Trigger auto-sync after Pocket import
+        // Reset import flag and trigger auto-sync once with all imported bookmarks
+        isImportInProgress = false;
         if (stats.success > 0) {
             triggerAutoSync();
         }
+    } else {
+        // Reset import flag even if cancelled
+        isImportInProgress = false;
     }
 }
 
@@ -2084,6 +2173,7 @@ function closeImportProgressModal() {
  */
 function cancelPocketImport() {
     importCancelled = true;
+    isImportInProgress = false; // Reset import flag
     updateProgressStatus('Cancelling import...');
 }
 
@@ -2168,6 +2258,12 @@ async function isAutoSyncEnabled() {
 }
 
 async function triggerAutoSync() {
+    // Skip auto-sync if import is in progress
+    if (isImportInProgress) {
+        console.log('Auto-sync skipped: Import in progress');
+        return;
+    }
+    
     // Check if auto-sync is enabled and user is connected to GitHub
     const autoSyncEnabled = await isAutoSyncEnabled();
     if (!autoSyncEnabled || !githubSync.isAuthenticated()) {

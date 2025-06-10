@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "BookmarkPp",
+  "name": "Bookmark++",
   "version": "1.0.0",
   "description": "A local-first bookmark manager like Pocket, with optional cloud sync",
   "permissions": [
@@ -18,7 +18,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "BookmarkPp - Save this page"
+    "default_title": "Bookmark++ - Save this page"
   },
   "content_scripts": [
     {
