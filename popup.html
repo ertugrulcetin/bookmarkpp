@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookmarkPp</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>📚 BookmarkPp</h2>
+        </div>
+        
+        <div class="main-content">
+            <div class="current-page" id="currentPage">
+                <div class="page-info">
+                    <div class="favicon" id="favicon"></div>
+                    <div class="page-details">
+                        <div class="page-title" id="pageTitle">Loading...</div>
+                        <div class="page-url" id="pageUrl">Loading...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="actions">
+                <button id="saveBtn" class="btn btn-primary">
+                    <span class="btn-icon">💾</span>
+                    Save This Page
+                </button>
+                
+                <button id="deleteBtn" class="btn btn-danger" style="display: none;">
+                    <span class="btn-icon">🗑️</span>
+                    Delete Bookmark
+                </button>
+                
+                <button id="dashboardBtn" class="btn btn-secondary">
+                    <span class="btn-icon">📊</span>
+                    Open Dashboard
+                </button>
+            </div>
+            
+            <div class="status" id="status"></div>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html> 

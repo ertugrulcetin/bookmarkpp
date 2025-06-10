@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookmark++ Dashboard</title>
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <h1>📚 Bookmark++ Dashboard</h1>
+                    <p class="subtitle">Your personal bookmark manager</p>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="stats" id="stats">
+                        <span class="stat-item">
+                            <span class="stat-number" id="totalBookmarks">0</span>
+                            <span class="stat-label">Bookmarks</span>
+                        </span>
+                        <span class="stat-item">
+                            <span class="stat-number" id="totalDomains">0</span>
+                            <span class="stat-label">Domains</span>
+                        </span>
+                    </div>
+                    
+                    <div class="header-buttons">
+                        <button id="settingsBtn" class="btn btn-outline" title="Settings & Sync">
+                            <span class="btn-icon">⚙️</span>
+                            Settings
+                        </button>
+                        <button id="notesBtn" class="btn btn-outline" title="View all notes">
+                            <span class="btn-icon">📝</span>
+                            Notes
+                        </button>
+                        <button id="exportBtn" class="btn btn-outline" title="Export bookmarks">
+                            <span class="btn-icon">📤</span>
+                            Export
+                        </button>
+                        <button id="importBtn" class="btn btn-outline" title="Import bookmarks">
+                            <span class="btn-icon">📥</span>
+                            Import
+                        </button>
+                        <button id="importPocketBtn" class="btn btn-outline" title="Import from Pocket CSV">
+                            <img src="icons/pocket-icon.png" alt="Pocket" class="btn-icon-img">
+                            Import Pocket Data
+                        </button>
+                        <input type="file" id="importFile" accept=".json" style="display: none;">
+                        <input type="file" id="importPocketFile" accept=".csv" style="display: none;">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Search and Filter Bar -->
+        <div class="search-section">
+            <div class="search-container">
+                <div class="search-row">
+                    <div class="search-input-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="Smart search across titles, descriptions, notes, and URLs..."
+                            class="search-input"
+                        >
+                        <button id="clearSearch" class="clear-search" title="Clear search">✕</button>
+                        <div id="searchResults" class="search-results-count" style="display: none;">
+                            <span id="searchResultsText">0 results</span>
+                        </div>
+                    </div>
+                    
+                    <div class="view-options">
+                        <button id="listView" class="view-btn active" title="List View" data-view="list">
+                            <span class="view-icon">📋</span>
+                        </button>
+                        <button id="cardView" class="view-btn" title="Card View" data-view="card">
+                            <span class="view-icon">⊞</span>
+                        </button>
+                        <button id="detailView" class="view-btn" title="Detail View" data-view="detail">
+                            <span class="view-icon">📄</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="filter-options">
+                    <select id="sortBy" class="filter-select" title="Sort bookmarks" aria-label="Sort bookmarks">
+                        <option value="relevance">Sort by Relevance</option>
+                        <option value="date-desc" selected>Sort by Date (Newest)</option>
+                        <option value="date-asc">Sort by Date (Oldest)</option>
+                        <option value="title-asc">Sort by Title (A-Z)</option>
+                        <option value="title-desc">Sort by Title (Z-A)</option>
+                        <option value="domain">Sort by Domain</option>
+                    </select>
+                    
+                    <select id="filterBy" class="filter-select" title="Filter bookmarks" aria-label="Filter bookmarks">
+                        <option value="all">All Bookmarks</option>
+                        <option value="last-7-days">Last 7 Days</option>
+                        <option value="last-30-days">Last 30 Days</option>
+                        <option value="custom-range">Custom Date Range</option>
+                        <option value="has-notes">With Notes</option>
+                        <option value="no-notes">Without Notes</option>
+                    </select>
+                    
+                    <div id="customDateRange" class="custom-date-range" style="display: none;">
+                        <div class="date-range-inputs">
+                            <div class="date-input-group">
+                                <label for="dateFrom" class="date-label">From:</label>
+                                <input type="date" id="dateFrom" class="date-input">
+                            </div>
+                            <div class="date-input-group">
+                                <label for="dateTo" class="date-label">To:</label>
+                                <input type="date" id="dateTo" class="date-input">
+                            </div>
+                            <button id="applyDateRange" class="btn btn-primary btn-sm">Apply</button>
+                            <button id="clearDateRange" class="btn btn-secondary btn-sm">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Loading State -->
+            <div id="loadingState" class="loading-state">
+                <div class="loading-spinner">⏳</div>
+                <p>Loading your bookmarks...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">📚</div>
+                <h2>No bookmarks yet</h2>
+                <p>Start bookmarking pages by clicking the BookmarkPp extension icon!</p>
+                <div class="empty-actions">
+                    <button id="addFirstBookmark" class="btn btn-primary">
+                        <span class="btn-icon">➕</span>
+                        Bookmark Current Page
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bookmarks Grid -->
+            <div id="bookmarksContainer" class="bookmarks-container" style="display: none;">
+                <div id="bookmarksList" class="bookmarks-grid">
+                    <!-- Bookmarks will be dynamically inserted here -->
+                </div>
+            </div>
+
+            <!-- No Search Results -->
+            <div id="noResults" class="no-results" style="display: none;">
+                <div class="empty-icon">🔍</div>
+                <h2>No results found</h2>
+                <p>Try adjusting your search terms or filters</p>
+            </div>
+        </main>
+
+        <!-- Footer with pagination (if needed later) -->
+        <footer class="dashboard-footer">
+            <div class="footer-content">
+                <p class="footer-text">BookmarkPp - Local-first bookmark manager</p>
+                <div class="footer-actions">
+                    <button id="refreshBtn" class="btn btn-text" title="Refresh bookmarks">
+                        <span class="btn-icon">🔄</span>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Bookmark Detail Modal -->
+    <div id="bookmarkModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Bookmark Details</h3>
+                <button id="closeModal" class="close-btn">✕</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="bookmark-detail">
+                    <div class="detail-favicon" id="modalFavicon"></div>
+                    <div class="detail-info">
+                        <h4 id="modalBookmarkTitle">Title</h4>
+                        <a id="modalBookmarkUrl" href="#" target="_blank" class="detail-url">URL</a>
+                        <p id="modalBookmarkDesc" class="detail-description">Description</p>
+                        <p class="detail-meta">
+                            <span>Added: <span id="modalBookmarkDate"></span></span>
+                            <span>Domain: <span id="modalBookmarkDomain"></span></span>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="notes-section">
+                    <h4>Notes <span id="notesCount" class="count-badge">0</span></h4>
+                    <div id="notesList" class="notes-list">
+                        <!-- Notes will be inserted here -->
+                    </div>
+                    
+                    <div class="add-note-section">
+                        <textarea 
+                            id="newNoteText" 
+                            placeholder="Add a note about this bookmark..."
+                            rows="3"
+                            class="note-input"
+                        ></textarea>
+                        <button id="addNoteBtn" class="btn btn-primary btn-sm">
+                            <span class="btn-icon">➕</span>
+                            Add Note
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="deleteBookmarkBtn" class="btn btn-danger">
+                    <span class="btn-icon">🗑️</span>
+                    Delete Bookmark
+                </button>
+                <button id="visitBookmarkBtn" class="btn btn-primary">
+                    <span class="btn-icon">🔗</span>
+                    Visit Page
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes Modal -->
+    <div id="notesModal" class="modal" style="display: none;">
+        <div class="modal-content notes-modal-content">
+            <div class="modal-header">
+                <h3 id="notesModalTitle">All Notes</h3>
+                <button id="closeNotesModal" class="close-btn">✕</button>
+            </div>
+            
+            <div class="modal-body notes-modal-body">
+                <div id="notesStats" class="notes-stats">
+                    <span class="notes-count">0 notes found</span>
+                </div>
+                
+                <div id="notesContainer" class="notes-container">
+                    <!-- Notes will be inserted here -->
+                </div>
+                
+                <div id="noNotesMessage" class="no-notes-message" style="display: none;">
+                    <div class="empty-icon">📝</div>
+                    <h3>No notes found</h3>
+                    <p>Start adding notes by selecting text and using the context menu "Add to BookmarkPp"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Progress Modal -->
+    <div id="importProgressModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="importProgressTitle">Importing Pocket Data</h3>
+            </div>
+            
+            <div class="modal-body">
+                <div class="import-progress">
+                    <div class="progress-info">
+                        <p id="progressStatus">Preparing import...</p>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar">
+                                <div id="progressBarFill" class="progress-bar-fill"></div>
+                            </div>
+                            <span id="progressText">0%</span>
+                        </div>
+                        <p id="progressDetails">0 of 0 processed</p>
+                    </div>
+                    
+                    <div class="import-preview" id="importPreview" style="display: none;">
+                        <h4>Data Preview</h4>
+                        <div class="preview-sample" id="previewSample">
+                            <!-- Preview items will be inserted here -->
+                        </div>
+                    </div>
+                    
+                    <div class="import-stats" id="importStats" style="display: none;">
+                        <div class="stat-row">
+                            <span>Successfully imported:</span>
+                            <span id="successCount">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Failed to process:</span>
+                            <span id="errorCount">0</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Skipped (duplicates):</span>
+                            <span id="skipCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button id="cancelImportBtn" class="btn btn-secondary">Cancel</button>
+                <button id="closeImportBtn" class="btn btn-primary" style="display: none;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="context-menu" style="display: none;">
+        <div class="context-menu-item" data-action="open">
+            <span class="menu-icon">🔗</span>
+            Open Link
+        </div>
+        <div class="context-menu-item" data-action="copy">
+            <span class="menu-icon">📋</span>
+            Copy URL
+        </div>
+        <div class="context-menu-item" data-action="edit">
+            <span class="menu-icon">✏️</span>
+            View Details
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" data-action="delete">
+            <span class="menu-icon">🗑️</span>
+            Delete
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal" style="display: none;">
+        <div class="modal-content settings-modal-content">
+            <div class="modal-header">
+                <h3>Settings & Sync</h3>
+                <button id="closeSettingsModal" class="close-btn">✕</button>
+            </div>
+            
+            <div class="modal-body settings-modal-body">
+                <div class="settings-section">
+                    <h4>📡 Cloud Sync</h4>
+                    <p class="settings-description">Sync your bookmarks across devices using GitHub Gists</p>
+                    
+                    <div id="syncNotConnected" class="sync-status" style="display: none;">
+                        <div class="status-indicator status-disconnected"></div>
+                        <div class="status-info">
+                            <strong>Not Connected</strong>
+                            <p>Connect to GitHub to sync your bookmarks across devices</p>
+                        </div>
+                        <button id="connectGitHubBtn" class="btn btn-primary">
+                            <span class="btn-icon">🔗</span>
+                            Connect to GitHub
+                        </button>
+                    </div>
+                    
+                    <div id="syncConnected" class="sync-status" style="display: none;">
+                        <div class="status-indicator status-connected"></div>
+                        <div class="status-info">
+                            <strong>Connected to GitHub</strong>
+                            <p id="githubUserInfo">Connected as: <span id="githubUsername">...</span></p>
+                            <p id="githubGistInfo" class="small-text">Gist ID: <span id="githubGistId">Not created yet</span></p>
+                            <p id="lastSyncTime" class="small-text">Last sync: Never</p>
+                        </div>
+                        <div class="sync-actions">
+                            <button id="syncUpBtn" class="btn btn-primary btn-sm">
+                                <span class="btn-icon">⬆️</span>
+                                Upload to GitHub
+                            </button>
+                            <button id="syncDownBtn" class="btn btn-outline btn-sm">
+                                <span class="btn-icon">⬇️</span>
+                                Download from GitHub
+                            </button>
+                            <button id="disconnectGitHubBtn" class="btn btn-danger btn-sm">
+                                <span class="btn-icon">🔗</span>
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="syncInProgress" class="sync-status" style="display: none;">
+                        <div class="status-indicator status-syncing"></div>
+                        <div class="status-info">
+                            <strong>Syncing...</strong>
+                            <p id="syncProgressText">Please wait while we sync your bookmarks</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>📊 Statistics</h4>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statsBookmarks">0</div>
+                            <div class="stat-label">Total Bookmarks</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statsDomains">0</div>
+                            <div class="stat-label">Unique Domains</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statsNotes">0</div>
+                            <div class="stat-label">Total Notes</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statsStorage">0 KB</div>
+                            <div class="stat-label">Storage Used</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>⚙️ General Settings</h4>
+                    <div class="setting-item">
+                        <label for="defaultView">Default View Mode:</label>
+                        <select id="defaultView" class="setting-select">
+                            <option value="list">List View</option>
+                            <option value="card">Card View</option>
+                            <option value="detail">Detail View</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="itemsPerPage">Items per page:</label>
+                        <select id="itemsPerPage" class="setting-select">
+                            <option value="25">25 items</option>
+                            <option value="50" selected>50 items</option>
+                            <option value="100">100 items</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item checkbox-setting">
+                        <label>
+                            <input type="checkbox" id="autoSync" class="setting-checkbox" checked>
+                            Auto-sync when bookmarks or notes change (when connected)
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item checkbox-setting">
+                        <label>
+                            <input type="checkbox" id="openOnClick" class="setting-checkbox">
+                            Open bookmark directly when clicking card
+                        </label>
+                        <p class="setting-help">When enabled, clicking anywhere on a bookmark card will open the link directly. When disabled, clicking opens the details modal.</p>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>⌨️ Keyboard Shortcuts</h4>
+                    <p class="settings-description">Set custom keyboard shortcuts to quickly access BookmarkPp</p>
+                    
+                    <div class="setting-item">
+                        <label for="dashboardShortcut">Open Dashboard:</label>
+                        <div class="shortcut-input-container">
+                            <input type="text" id="dashboardShortcut" class="shortcut-input" readonly placeholder="Click to record shortcut">
+                            <button id="recordDashboardShortcut" class="btn btn-outline btn-sm">Record</button>
+                            <button id="clearDashboardShortcut" class="btn btn-secondary btn-sm">Clear</button>
+                        </div>
+                        <p class="setting-help">Press the Record button, then press your desired key combination (e.g., Cmd+K)</p>
+                    </div>
+                </div>
+                
+                <div class="settings-section">
+                    <h4>🗂️ Data Management</h4>
+                    <div class="setting-actions">
+                        <button id="exportDataBtn" class="btn btn-outline">
+                            <span class="btn-icon">📤</span>
+                            Export All Data
+                        </button>
+                        <button id="clearAllDataBtn" class="btn btn-danger">
+                            <span class="btn-icon">🗑️</span>
+                            Clear All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="fuse.js"></script>
+    <script src="github-sync.js"></script>
+    <script src="storage.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html> 
