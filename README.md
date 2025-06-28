@@ -2,6 +2,8 @@
 
 A modern, local-first Chrome extension for managing your bookmarks with style and intelligence.
 
+Chrome extension link: https://chromewebstore.google.com/detail/bookmark++/hekpmdjjmnfnccohnepfdjjcafdcadaa
+
 ## Why Bookmark++?
 
 When Pocket shut down, I couldn't find a bookmark manager that met my needs—they were either too bloated, lacking features, or had privacy concerns. So I built my own using Cursor AI: a straightforward, no-nonsense tool focused on **your data, your control, your way**.
